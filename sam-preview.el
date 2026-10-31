@@ -1,5 +1,8 @@
 ;;; sam-preview.el --- Isolated text-only Sam recipe previews -*- lexical-binding: t; -*-
 
+;; SPDX-License-Identifier: GPL-3.0-or-later
+;; 2026-10-31: Licensed by the user for this combined Kao/Sam fork.
+
 ;; 2026-10-21: Use the real parser/evaluator on temporary buffers. Never
 ;; execute shell/undo recipes to preview them, mutate user buffers, or run
 ;; normal editing hooks in preview. Apply reruns only a validated snapshot;

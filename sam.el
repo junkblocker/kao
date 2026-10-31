@@ -1,5 +1,8 @@
 ;;; sam.el --- sam structural regular expression commands -*- lexical-binding: t; -*-
 
+;; SPDX-License-Identifier: GPL-3.0-or-later
+;; 2026-10-31: Licensed by the user for this combined Kao/Sam fork.
+
 ;;; Commentary:
 
 ;; An implementation of the sam(1) command language for Emacs buffers,

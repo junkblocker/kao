@@ -1,5 +1,8 @@
 ;;; my-sam-workbench.el --- Explicit Sam recipes and reviewed replay -*- lexical-binding: t; -*-
 
+;; SPDX-License-Identifier: GPL-3.0-or-later
+;; 2026-10-31: Licensed by the user for this combined Kao/Sam fork.
+
 ;; 2026-10-21: A recipe finds targets again; Kao dot repeats its own action.
 ;; Pin the target during an entered session, preserve direct Sam commands,
 ;; and require a fresh text preview for open-buffer loops. No Kao changes.

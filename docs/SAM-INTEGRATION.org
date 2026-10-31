@@ -5,7 +5,7 @@
 - Sam libraries and tests: local Emacs commit 998e45dbc73299389296f9baf64697923645738d. Preserve public features and names, selection conversion, undo and preview behavior.
 - Imported tests invoke the public workbench command directly; the Emacs config owns SPC s. Suppress only the compatibility warning for savehist-loaded in its imported persistence test.
 - Optional workbench checks use make check-sam. Existing Kao checks retain their original dependency boundary. Emacs 29/30 workbench compatibility is not established by the Mac check.
-- This local package does not change the live config or its package recipe. Sam license/provenance needs explicit resolution before public publication; no license is assigned by this move.
+- This local package does not change the live config or its package recipe. The user approved GPL-3.0-or-later for the maintained Sam engine, preview and workbench on 2026-10-31. Their original Emacs source provenance remains above.
 
 * Acceptance before config migration
 - [X] Verify package autoload discovery and source resolution from an isolated package containing byte-identical sources.
