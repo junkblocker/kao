@@ -9,6 +9,11 @@ selections are the only primitive. `w` selects a word, `d`
 deletes every selection, `s` splits selections on a regex into one
 cursor per match.
 
+This fork also contains Sam commands, text previews, and an optional recipe
+workbench. [Selections and saved recipes](docs/SAM.md) explains how to use
+them together. Kao's existing selection model, keys, and dot repeat remain
+available.
+
 kao is not an emulation layer over Emacs commands. It owns a real
 selection list as its single source of truth; the Emacs point and
 region are a mirror of the main selection, never the other way around.
@@ -28,23 +33,22 @@ region are a mirror of the main selection, never the other way around.
 - **Native.** Insert state is plain Emacs editing: your completion,
   your erase keys. Emacs's regex, undo, clipboard and minibuffer do
   the machinery; Kakoune semantics decide the behaviour.
-- **Zero dependencies.** Emacs 29.1+.
+- **Core has zero package dependencies.** Emacs 29.1+. The optional Sam
+  workbench uses Transient; direct Sam commands do not require it.
 
 ## Installation
 
-kao is not on MELPA yet, so install it straight from Git. It has **zero package
-dependencies** (Emacs 29.1+), so there is nothing else to pull in. Releases are
-tagged `vX.Y.Z`, so you can pin to a release instead of tracking every commit.
+Install this fork from Git. Core Kao requires Emacs 29.1+. The optional Sam
+workbench uses Transient. Older upstream release tags contain Kao alone.
 
 The minimal path is to run the `package-vc-install` form once interactively
-(`M-x eval-expression`, or in the `*scratch*` buffer) to fetch the latest
-release, then keep the `require` and `kao-global-mode` lines in your init file
+(`M-x eval-expression`, or in the `*scratch*` buffer) to fetch the default
+branch, then keep the `require` and `kao-global-mode` lines in your init file
 so kao loads every session:
 
 ```elisp
 ;; one-time; run interactively (M-x eval-expression, or in *scratch*):
-;; `:last-release' pins to the newest tag; drop it to track the latest commit.
-(package-vc-install "https://github.com/saifulapm/kao" :last-release)
+(package-vc-install "https://github.com/junkblocker/kao")
 ```
 
 then, in your init file (loads every session):
@@ -60,29 +64,27 @@ Or declare it with your package manager:
 
 ```elisp
 (use-package kao
-  :vc (:url "https://github.com/saifulapm/kao" :rev :last-release)
+  :vc (:url "https://github.com/junkblocker/kao" :rev :newest)
   :config
   (kao-global-mode 1))
 ```
 
-`:rev :last-release` pins to the newest tagged release; use `:rev :newest` to
-track the latest commit instead.
+`:rev :newest` selects the latest commit on the default branch.
 
 **[Elpaca](https://github.com/progfolio/elpaca)**
 
 ```elisp
-(elpaca (kao :host github :repo "saifulapm/kao")
+(elpaca (kao :host github :repo "junkblocker/kao")
   (require 'kao)
   (kao-global-mode 1))
 ```
 
-Add `:ref "v1.0.2"` (the newest tag) to the recipe to pin a release; omit it to
-track the default branch.
+Add `:ref` with the full commit ID to pin an installed revision.
 
 **[straight.el](https://github.com/radian-software/straight.el)**
 
 ```elisp
-(straight-use-package '(kao :host github :repo "saifulapm/kao"))
+(straight-use-package '(kao :host github :repo "junkblocker/kao"))
 
 (require 'kao)
 (kao-global-mode 1)

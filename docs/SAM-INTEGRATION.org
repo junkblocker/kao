@@ -1,0 +1,23 @@
+#+TITLE: Sam package integration record
+
+* Source and scope - 2026-10-31
+- Kao baseline: e301978adb7a7f7966f02ad1572427bb604bc6e4 from the existing junkblocker/kao fork. Preserve upstream history and license notices.
+- Sam libraries and tests: local Emacs commit 998e45dbc73299389296f9baf64697923645738d. Preserve public features and names, selection conversion, undo and preview behavior.
+- Imported tests invoke the public workbench command directly; the Emacs config owns SPC s. Suppress only the compatibility warning for savehist-loaded in its imported persistence test.
+- Optional workbench checks use make check-sam. Existing Kao checks retain their original dependency boundary. Emacs 29/30 workbench compatibility is not established by the Mac check.
+- This local package does not change the live config or its package recipe. Sam license/provenance needs explicit resolution before public publication; no license is assigned by this move.
+
+* Acceptance before config migration
+- [X] Verify package autoload discovery and source resolution from an isolated package containing byte-identical sources.
+- [X] Run both existing suites and strict compilation against this package. Mac Emacs 31: baseline 1563 passed and 57 skipped; combined 1639 passed and the same 57 skipped. No unexpected results. The 76 Sam checks also pass independently.
+- [ ] Prepare the maintained README.org recipe change pinned to the combined revision. Keep an available rollback revision.
+- [ ] Trace all old Sam library consumers before removing any config-owned copy. Preserve current practice commands and tutorial links.
+- [ ] Check config menus, workbench help, the Sam Guide and Tutor, and disposable practice for the same terms, scope and recovery steps.
+- [ ] Exercise the actual migrated config in separate GUI/TTY processes. Record Android acceptance separately if unavailable.
+- [ ] Publish and activate only after the user's current no-push instruction changes.
+
+* Packaging findings
+- Native autoload generation needs its output at the package root, as documented by loaddefs-generate--file-load-name. The first temporary check put it elsewhere and produced invalid relative library names; the corrected isolated package check passes.
+- Give the Transient prefix an explicit command autoload. This avoids requiring its macro during package discovery and keeps Transient unloaded until workbench use.
+- Core source, preview and workbench algorithms remain unchanged. Only ownership commentary and the workbench autoload declaration change in the imported libraries.
+- Logs: /tmp/kao-before-sam.log, /tmp/kao-sam-check.log, /tmp/kao-sam-combined.log and /tmp/kao-sam-autoload-check.log.

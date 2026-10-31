@@ -7,6 +7,13 @@ SRC = kao.el kao-selection.el kao-render.el kao-history.el kao-state.el \
       kao-macro.el kao-keys.el kao-objects.el kao-vundo.el kao-surround.el \
       kao-treesit.el
 
+# 2026-10-31: Sam's optional Transient workbench is checked separately so
+# Kao's existing Emacs 29.1 core gate does not acquire a new dependency.
+SAMSRC = sam.el sam-preview.el my-sam-workbench.el
+SAMTESTSRC = test/sam-tests.el test/sam-scope-tests.el test/sam-mark-tests.el \
+             test/sam-command-buffers-tests.el test/sam-preview-tests.el \
+             test/sam-workbench-tests.el
+
 # Test-suite sources, alphabetical.  Kept in sync with the `test' target's
 # -l list by hand — a file listed there but not here escapes the strict
 # compile gate (and vice versa fails the suite).
@@ -25,10 +32,23 @@ TESTSRC = test/kao-bench-tests.el test/kao-bench.el \
           test/kao-vundo-tests.el
 
 .PHONY: check test compile compile-tests bench bench-attr checkdoc clean clean-elc
+.PHONY: check-sam compile-sam test-sam
 
 # The one-command gate: strict byte-compile (sources AND tests),
 # full ERT suite, then checkdoc.  First target, so bare `make` runs it.
 check: compile compile-tests test checkdoc
+
+check-sam: compile-sam test-sam
+
+compile-sam:
+	$(EMACS) -Q -batch -L . -L test \
+	  --eval '(setq byte-compile-error-on-warn t)' \
+	  -f batch-byte-compile $(SAMSRC) $(SAMTESTSRC)
+
+test-sam: clean-elc
+	$(EMACS) -Q -batch -L . -L test \
+	  $(foreach source,$(SAMTESTSRC),-l $(source)) \
+	  -f ert-run-tests-batch-and-exit
 
 # Stale .elc shadow their sources (`load' prefers .elc even when OLDER than
 # the .el — `load-prefer-newer' defaults to nil), so the test and bench gates
