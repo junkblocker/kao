@@ -2282,6 +2282,49 @@ passes — kao-buffer behavior is unchanged from the pre-gate filter."
             ((symbol-function 'sit-for) (lambda (_) nil)))
     (should (eq 'saved-map (kao--esc-filter 'saved-map)))))
 
+(defmacro kao-state-tests--with-pending-esc (events &rest body)
+  "Run BODY in kao-mode as if a terminal ESC arrived followed by EVENTS."
+  (declare (indent 1))
+  `(kao-state-tests--with "abc"
+     (kao-mode 1)
+     (unwind-protect
+         (let ((unread-command-events ,events))
+           (cl-letf (((symbol-function 'this-single-command-keys) (lambda () [?\e]))
+                     ((symbol-function 'sit-for) (lambda (_) nil)))
+             ,@body))
+       (kao-mode -1))))
+
+(ert-deftest kao-state-esc-filter-resolves-ss3-and-csi-arrows ()
+  "Pending SS3/CSI arrow bytes decode in the filter, not through MAP.
+Emacs did not reliably continue decoding through a keymap returned by this
+`:filter' over an emacsclient tty relay; the leftover `ESC O' became M-O
+\(`kao-add-line-above') and inserted a blank line."
+  (kao-state-tests--with-pending-esc (list ?O ?B)
+    (should (equal [down] (kao--esc-filter (make-sparse-keymap))))
+    (should-not unread-command-events))
+  (kao-state-tests--with-pending-esc (list ?\[ ?A)
+    (should (equal [up] (kao--esc-filter (make-sparse-keymap)))))
+  (kao-state-tests--with-pending-esc (list ?\[ ?Z)
+    (should (equal [backtab] (kao--esc-filter (make-sparse-keymap))))))
+
+(ert-deftest kao-state-esc-filter-resolves-parameterized-csi ()
+  "`ESC [ 5 ~' style sequences are read to the final byte and looked up."
+  (let ((map (make-sparse-keymap)))
+    (define-key map [?\[ ?5 ?~] [prior])
+    (kao-state-tests--with-pending-esc (list ?\[ ?5 ?~)
+      (should (equal [prior] (kao--esc-filter map)))
+      (should-not unread-command-events))))
+
+(ert-deftest kao-state-esc-filter-keeps-meta-chords ()
+  "Bytes outside the sequence tables are pushed back for normal Meta dispatch."
+  (kao-state-tests--with-pending-esc (list ?f)
+    (let ((map (make-sparse-keymap)))
+      (should (eq map (kao--esc-filter map)))
+      (should (equal unread-command-events (list ?f)))))
+  (kao-state-tests--with-pending-esc (list ?O ?x)
+    (kao--esc-filter (make-sparse-keymap))
+    (should (equal unread-command-events (list ?x)))))
+
 (ert-deftest kao-state-esc-filter-defers-when-not-esc ()
   "A sequence not ending in ESC is never translated."
   (cl-letf (((symbol-function 'this-single-command-keys) (lambda () [?x]))

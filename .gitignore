@@ -1,3 +1,4 @@
 references/
 *.elc
 .worktrees/
+.stignore_git

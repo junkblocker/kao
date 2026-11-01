@@ -329,36 +329,96 @@ active model (`kao-mode' or an active minibuffer), so a non-kao buffer already
 keeps ESC's terminal meaning; this knob suppresses the translation even where
 kao would otherwise apply it (hel-study-5).")
 
+(defconst kao--esc-sequence-alist
+  '((?O (?A . [up]) (?B . [down]) (?C . [right]) (?D . [left])
+        (?H . [home]) (?F . [end])
+        (?P . [f1]) (?Q . [f2]) (?R . [f3]) (?S . [f4]))
+    (?\[ (?A . [up]) (?B . [down]) (?C . [right]) (?D . [left])
+         (?H . [home]) (?F . [end]) (?Z . [backtab])))
+  "SS3 (`?O') and CSI (`?\\[') second bytes `kao--esc-filter' decodes itself.
+Junkblocker fork 2026-11-01: Emacs did not reliably continue a terminal
+decode through the keymap this filter returns, so known sequences are read
+here.  Anything else still defers to the saved decode map.")
+
+(defun kao--esc-resolve-csi-params (map first)
+  "Read a parameterized CSI sequence after `ESC [' and FIRST; return binding.
+Covers PgUp/PgDn, Delete, F5-F12 and bracketed paste (`ESC [ 200 ~').  Look
+in MAP, then the parent of `input-decode-map' (where paste lives), then
+`local-function-key-map'.  A decoder function binding is called.  With no
+binding, push the bytes back and return MAP's binding for `['."
+  (let ((params (list first)) ev)
+    (while (and (< (length params) 16)
+                (setq ev (read-event nil nil kao-esc-delay))
+                (characterp ev) (<= ?0 ev ?\;))
+      (push ev params))
+    (let* ((seq (vconcat [?\[] (nreverse params) (and ev (list ev))))
+           (bind (seq-find
+                  (lambda (b) (or (arrayp b) (functionp b)))
+                  (list (and (keymapp map) (lookup-key map seq))
+                        (and (keymap-parent input-decode-map)
+                             (lookup-key (keymap-parent input-decode-map)
+                                         (vconcat [?\e] seq)))
+                        (lookup-key local-function-key-map (vconcat [?\e] seq))))))
+      (cond
+       ((arrayp bind) bind)
+       ((functionp bind) (funcall bind nil))
+       (t (setq unread-command-events
+                (append (cdr (append seq nil)) unread-command-events))
+          (and (keymapp map) (lookup-key map [?\[])))))))
+
+(defun kao--esc-resolve (map)
+  "Decode the input pending after a terminal ESC; MAP is the saved decode map.
+Known arrow, Home/End, F1-F4, backtab and parameterized CSI sequences are
+read and returned here.  Other bytes are pushed back, so a real Meta chord
+still dispatches normally."
+  (let ((b1 (read-event nil nil 0.001)))
+    (cond
+     ((null b1) map)
+     ((and (characterp b1) (assq b1 kao--esc-sequence-alist))
+      (let ((table (cdr (assq b1 kao--esc-sequence-alist)))
+            (b2 (read-event nil nil kao-esc-delay)))
+        (cond
+         ((and (characterp b2) (assq b2 table)) (cdr (assq b2 table)))
+         ((and (eq b1 ?\[) (characterp b2) (<= ?0 b2 ?9))
+          (kao--esc-resolve-csi-params map b2))
+         (t (setq unread-command-events
+                  (append (and b2 (list b2)) unread-command-events))
+            (and (keymapp map) (lookup-key map (vector b1)))))))
+     (t (setq unread-command-events (cons b1 unread-command-events))
+        map))))
+
 (defun kao--esc-filter (map)
-  "Decode a lone terminal ESC to [escape]; defer to MAP otherwise.
+  "Decode a lone terminal ESC to [escape]; else resolve or defer to MAP.
 The :filter of the `menu-item' that `kao--esc-init-terminal' binds on ESC in
 `input-decode-map'.  The just-read key is translated to the `escape' event
 only when kao is the active model here — `kao-mode' on, or an active minibuffer
 \(so a terminal minibuffer read still gets `escape') — and `kao-inhibit-esc' is
-nil, AND it ended in a raw ESC with no further input within `kao-esc-delay'
-\(`sit-for' returns nil as soon as input is pending, so a terminal
-Alt/function-key burst falls through to MAP, the saved decode map).  Outside
-kao it always returns MAP, so ESC keeps its terminal meaning (hel-study-5).
+nil, AND it ended in a raw ESC with no further input within `kao-esc-delay'.
+When input is pending in that context, `kao--esc-resolve' decodes known
+terminal sequences itself (junkblocker fork 2026-11-01: returning MAP left
+`ESC O' to become a Meta chord over an emacsclient tty relay, so arrow
+keys opened a blank line).  Outside kao it always returns MAP, so ESC keeps
+its terminal meaning (hel-study-5).
 
 When translating while the variable `defining-kbd-macro' is set (a native
 kmacro definition, i.e. F3-recording), rewrite the macro so it stores the
 DECODED `escape' event rather than the raw ESC byte — evil's fixup verbatim
 \(`evil-esc', evil-core.el:626-630): end the macro, append `[escape]' to
 `last-kbd-macro', and restart recording in append mode.  Without it the raw
-ESC replays fused with the following macro key as a Meta chord
-\."
+ESC replays fused with the following macro key as a Meta chord."
   (if (and (not kao-inhibit-esc)
            (or (bound-and-true-p kao-mode) (active-minibuffer-window))
            (let ((keys (this-single-command-keys)))
              (and (> (length keys) 0)
-                  (eq (aref keys (1- (length keys))) ?\e)))
-           (sit-for kao-esc-delay))
-      (progn
-        (when defining-kbd-macro
-          (end-kbd-macro)
-          (setq last-kbd-macro (vconcat last-kbd-macro [escape]))
-          (start-kbd-macro t t))
-        [escape])
+                  (eq (aref keys (1- (length keys))) ?\e))))
+      (if (sit-for kao-esc-delay)
+          (progn
+            (when defining-kbd-macro
+              (end-kbd-macro)
+              (setq last-kbd-macro (vconcat last-kbd-macro [escape]))
+              (start-kbd-macro t t))
+            [escape])
+        (kao--esc-resolve map))
     map))
 
 (defun kao--esc-init-terminal (&optional frame)
