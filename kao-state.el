@@ -624,6 +624,8 @@ renders and reveals ONCE, not twice.  Point/mark are mirrored on every call
 because Emacs can deactivate the region without changing the selection."
   (when (and kao--sels (not kao--insert-active))
     (kao--mirror-main kao--sels)
+    ;; The command loop deactivates the mark after post-command hooks.
+    (setq deactivate-mark nil)
     (let ((tick (buffer-chars-modified-tick)))
       (unless (and kao--refresh-key
                    (eq (cdr kao--refresh-key) kao--sels)

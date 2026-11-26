@@ -706,8 +706,10 @@ insert restores it — the same normal↔insert discipline as `<esc>'/`i'."
         (progn
           (kao-set-selections (list (kao-sel-make :anchor 1 :cursor 5)))
           (deactivate-mark)
+          (setq deactivate-mark t)
           (should-not mark-active)
           (kao--refresh)
+          (should-not deactivate-mark)
           (should mark-active)
           (should (= (point) 5))
           (should (= (mark) 1)))
