@@ -609,7 +609,7 @@ register / menu commands) and again from the `post-command-hook' entry — over
 the SAME frame.  Every installer rebuilds `kao--sels' as a
 fresh struct, so its `eq'-identity changes whenever the selection does, and
 every buffer edit advances the tick; an unchanged pair means the second call
-would render an identical frame, so it is elided.  Buffer-local (both keys are
+would redraw identical secondaries, so that work is elided.  Buffer-local (both keys are
 per-buffer).  A changed pair always re-renders, so the guard is
 behavior-preserving and removes only redundant work.")
 
@@ -620,13 +620,14 @@ the live editing cursor.  Deduped per keystroke: the mid-command call and the
 `post-command-hook' call share the `(buffer-chars-modified-tick . kao--sels)'
 key in `kao--refresh-key', so the second collapses to nothing when neither the
 buffer nor the selection object changed since the first — one keystroke walks,
-mirrors, and reveals ONCE, not twice (behavior-preserving)."
+renders and reveals ONCE, not twice.  Point/mark are mirrored on every call
+because Emacs can deactivate the region without changing the selection."
   (when (and kao--sels (not kao--insert-active))
+    (kao--mirror-main kao--sels)
     (let ((tick (buffer-chars-modified-tick)))
       (unless (and kao--refresh-key
                    (eq (cdr kao--refresh-key) kao--sels)
                    (eql (car kao--refresh-key) tick))
-        (kao--mirror-main kao--sels)
         (kao--reveal-fold-at-main)
         (kao--render kao--sels)
         (setq kao--refresh-key (cons tick kao--sels))))))

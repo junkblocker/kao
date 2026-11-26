@@ -698,6 +698,21 @@ insert restores it — the same normal↔insert discipline as `<esc>'/`i'."
           (should (= (point) 3)))               ; mirror would have moved point to 5
       (kao-mode -1))))
 
+(ert-deftest kao-state-refresh-restores-deactivated-region ()
+  "A cached selection must regain its highlight after mark deactivation."
+  (kao-state-tests--with "alpha beta"
+    (kao-mode 1)
+    (unwind-protect
+        (progn
+          (kao-set-selections (list (kao-sel-make :anchor 1 :cursor 5)))
+          (deactivate-mark)
+          (should-not mark-active)
+          (kao--refresh)
+          (should mark-active)
+          (should (= (point) 5))
+          (should (= (mark) 1)))
+      (kao-mode -1))))
+
 (ert-deftest kao-state-refresh-dedupe-preserves-final-frame ()
   "The per-key dedupe guard never suppresses the FIRST render: after the doubled
 refresh (command body + `post-command-hook') the main cursor is still mirrored
